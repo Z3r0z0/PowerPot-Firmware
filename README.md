@@ -30,7 +30,7 @@ python build.py
 - Adds magic header: `# PowerPotFirmware <version> crc32=XXXXXXXX`
 - CRC-32 covers everything after header line
 
-Output: `dist/main.py` — single-file firmware for device.
+Output: `dist/main.py` - single-file firmware for device.
 
 ## Configuration
 ```json
@@ -66,7 +66,7 @@ Copy `dist/main.py` to device via serial (ampy, rshell, Thonny) or OTA.
 |---------------------|--------|------------------------------------------------|
 | `/api/tankLevel`    | GET    | `{"message": 0\|1}`                            |
 | `/api/opState`      | GET    | `{"message": 0-3}` (see OperationState)        |
-| `/api/updateConfig` | PUT    | `{"message": "TODO!!!"}` — **not implemented** |
+| `/api/updateConfig` | PUT    | `{"message": "TODO!!!"}` - **not implemented** |
 
 CORS enabled (`Access-Control-Allow-Origin: *`).
 
@@ -76,14 +76,14 @@ CORS enabled (`Access-Control-Allow-Origin: *`).
 | 0     | Unknown          | Initial, transitions after WiFi/server check        |
 | 1     | Standalone       | defautl operaton, no server connection              |
 | 2     | Client           | default operation                                   |
-| 3     | Low_Power_Client | Planned — periodic wake, deep sleep with server     |
-| 4     | IOT              | Planned — periodic wake, deep sleep, without server |
+| 3     | Low_Power_Client | Planned - periodic wake, deep sleep with server     |
+| 4     | IOT              | Planned - periodic wake, deep sleep, without server |
 
-Mode persists in `config.json` → `mode`.
+Mode persists in `config.json` => `mode`.
 
 ## State Machine
 ```
-Idle → MoistureCheck → PumpRunning → PumpStopRequested → Idle
+Idle => MoistureCheck => PumpRunning => PumpStopRequested => Idle
 ```
 - **Idle**: Waiting for `checkCycleInterval` timer
 - **MoistureCheck**: Reads ADC, decides watering
