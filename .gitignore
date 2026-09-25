@@ -1,0 +1,14 @@
+# Build output
+dist/
+
+**/[aA]gents.md
+**/AGENTS.md
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+*.swp

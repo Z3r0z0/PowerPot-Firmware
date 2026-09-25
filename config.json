@@ -1,0 +1,24 @@
+{
+  "checkCycleInterval": 3600000,
+  "serverIp": "",
+  "serverPort": "",
+  "mode": 0,
+  "wifi": {
+    "ssid": "",
+    "password": ""
+  },
+  "watering": {
+    "minLevel": 45,
+    "wateringDuration": 10000,
+    "pumpPower": 100
+  },
+  "ota": {
+    "checkCycleInterval": 43200000,
+    "version": "0.2.0",
+    "basePath": "",
+    "versionEndpoint": "/embedded/currentVersion/PowerPot",
+    "updateEndpoint": "/embedded/firmware/PowerPot"
+  }
+}
+
+
