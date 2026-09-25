@@ -90,7 +90,7 @@ Idle => MoistureCheck => PumpRunning => PumpStopRequested => Idle
 - **PumpRunning**: Pump on for `wateringDuration`
 - **PumpStopRequested**: Pump off, returns to Idle
 
-Driven by `TICK_DURATION = 10ms` timer interrupt.
+Driven by `TICK_DURATION = 100ms` timer interrupt.
 
 ## Server Discovery (UDP)
 1. Device calculates broadcast IP from its IP + subnet
@@ -136,12 +136,6 @@ src/
       operation_state.py  # OPERATION_State constants
       log_type.py         # LOG_Type constants
 ```
-
-### Key Conventions
-- **No stdlib `json`** - use `ujson`
-- **Imports**: `from src.lib import ...` - build script rewrites to flat imports
-- **Timer-based**: All intervals use `TICK_DURATION = 10ms` ticks
-- **Non-blocking**: `select.select()` for HTTP, `Timer.PERIODIC` for ticks
 
 ## Known TODOs
 - [ ] DNS redirect on AP to config page
