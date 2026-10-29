@@ -3,6 +3,7 @@
   "serverIp": "",
   "serverPort": "",
   "mode": 0,
+  "lowPowerSetupTime": 300000,
   "wifi": {
     "ssid": "",
     "password": ""

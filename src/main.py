@@ -125,7 +125,7 @@ if current_operation_mode != OPERATION_Mode["Low_Power"] or reset_cause != machi
 tick_timer = None
 if current_operation_mode == OPERATION_Mode["Low_Power"] and (
         reset_cause != machine.DEEPSLEEP_RESET or ota_duration <= 0):
-    tick_timer = time.ticks_add(time.ticks_ms(), 300_000)   # TODO: Load time from config
+    tick_timer = time.ticks_add(time.ticks_ms(), config.get("lowPowerSetupTime", 300_000))
 
 # %% main
 while True:
@@ -162,4 +162,4 @@ while True:
         rtc_memory_util.save_to_rtc_memory({"ota_duration": ota_ticks})
         machine.deepsleep(config.get("checkCycleInterval", 3_600_000))
     else:
-        machine.lightsleep(1000)
+        machine.lightsleep(100)
