@@ -30,7 +30,7 @@ python build.py
 - Adds magic header: `# PowerPotFirmware <version> crc32=XXXXXXXX`
 - CRC-32 covers everything after header line
 
-Output: `dist/main.py` - single-file firmware for device.
+Output: `dist/main.py` — single-file firmware for device.
 
 ## Configuration
 ```json
@@ -39,6 +39,7 @@ Output: `dist/main.py` - single-file firmware for device.
   "serverIp": "",                        // Backend IP (auto-discovered if empty)
   "serverPort": "",                      // Backend port (auto-discovered if empty)
   "mode": 0,                             // Operation mode (see below)
+  "lowPowerSetupTime": 300000,           // time until switch to low power on start (low_power mode)
   "wifi": { 
     "ssid": "", 
     "password": ""
@@ -71,13 +72,12 @@ Copy `dist/main.py` to device via serial (ampy, rshell, Thonny) or OTA.
 CORS enabled (`Access-Control-Allow-Origin: *`).
 
 ## Operation Modes
-| Value | Name             | Behavior                                            |
-|-------|------------------|-----------------------------------------------------|
-| 0     | Unknown          | Initial, transitions after WiFi/server check        |
-| 1     | Standalone       | defautl operaton, no server connection              |
-| 2     | Client           | default operation                                   |
-| 3     | Low_Power_Client | Planned - periodic wake, deep sleep with server     |
-| 4     | IOT              | Planned - periodic wake, deep sleep, without server |
+| Value | Name       | Behavior                                     |
+|-------|------------|----------------------------------------------|
+| 0     | Unknown    | Initial, transitions after WiFi/server check |
+| 1     | Standalone | defautl operaton, no server connection       |
+| 2     | Client     | default operation                            |
+| 3     | Low_Power  | Periodic wake, deep sleep                    |
 
 Mode persists in `config.json` => `mode`.
 

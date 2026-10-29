@@ -1,6 +1,7 @@
 from machine import PWM, Pin, ADC, Timer
 
 from src.lib.enum.log_type import LOG_Type
+from src.lib.enum.operation_mode import OPERATION_Mode
 from src.lib.enum.operation_state import OPERATION_State
 
 LED_PIN = 8
@@ -11,15 +12,22 @@ TICK_DURATION = 100
 
 
 class PowerPotHandler:
-    def __init__(self, config, server_handler=None):
+    def __init__(self, config, server_handler=None, check_update_ms=0):
         self.config = config
+        operation_mode = config.get("mode")
+
         self.server = server_handler
 
         self._state = OPERATION_State["Idle"]
         self._started = False
-        self._check_ticks = int(config.get("checkCycleInterval", 3600000)) // TICK_DURATION  # Default 1h
-        self._check_update_ticks = int(
-            config.get("ota", {}).get("checkCycleInterval", 43200000)) // TICK_DURATION  # Default 12h
+
+        if operation_mode != OPERATION_Mode["Low_Power"]:
+            self._check_ticks = int(config.get("checkCycleInterval", 3_600_000)) // TICK_DURATION  # Default 1h
+            self._check_update_ticks = int(
+                config.get("ota", {}).get("checkCycleInterval", 43_200_000)) // TICK_DURATION  # Default 12h
+        else:
+            self._check_ticks = 0
+            self._check_update_ticks = check_update_ms // TICK_DURATION
 
         self._pump_running_ticks = 0
         pump_pwm_pin = Pin(PWM_FORWARD_PIN, Pin.OUT, Pin.PULL_DOWN)
@@ -28,8 +36,8 @@ class PowerPotHandler:
         self._pump.duty(0)
         self._pump.freq(100)
 
-        self._soil_moisture_adc_max = 50000
-        self._soil_moisture_adc_min = 19500
+        self._soil_moisture_adc_max = 50_000
+        self._soil_moisture_adc_min = 19_500
 
         self._soil_moisture_adc_step = (self._soil_moisture_adc_max - self._soil_moisture_adc_min) / 100
         self._soil_moisture_adc_watering_min = self._soil_moisture_adc_max - (
@@ -68,7 +76,7 @@ class PowerPotHandler:
             return False
 
         self._check_update_ticks = int(
-            self.config.get("ota", {}).get("checkCycleInterval", 43200000)) // TICK_DURATION
+            self.config.get("ota", {}).get("checkCycleInterval", 43_200_000)) // TICK_DURATION
         return True
 
     def get_tank_level(self):
@@ -76,6 +84,9 @@ class PowerPotHandler:
 
     def get_current_operation_state(self):
         return self._state
+
+    def get_ota_time_ms(self):
+        return self._check_update_ticks * TICK_DURATION
 
     def run(self):
         if not self._started:
@@ -92,13 +103,13 @@ class PowerPotHandler:
                 print(f"[PowerPot] Watering; Soil Moisture: {percent_value}%")
                 self._pump.duty(int((1023 / 100) * self.config.get("watering", {}).get("pumpPower", 80)))
                 self._state = OPERATION_State["PumpRunning"]
-                self._pump_running_ticks = int(self.config.get("watering", {}).get("wateringDuration", 10000)) // TICK_DURATION
+                self._pump_running_ticks = int(self.config.get("watering", {}).get("wateringDuration", 10_000)) // TICK_DURATION
             else:
                 if self.server:
                     self.server.send_log(LOG_Type["sensor"], name="SoilMoisture", value=percent_value)
                 print(f"[PowerPot] Checked SoilMoisture: {percent_value}%")
                 self._state = OPERATION_State["Idle"]
-            self._check_ticks = int(self.config.get("checkCycleInterval", 3600000)) // TICK_DURATION
+            self._check_ticks = int(self.config.get("checkCycleInterval", 3_600_000)) // TICK_DURATION
         elif self._state == OPERATION_State["PumpStopRequested"]:
             self._pump.duty(0)
             self._state = OPERATION_State["Idle"]

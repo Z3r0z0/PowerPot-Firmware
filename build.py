@@ -33,6 +33,7 @@ MERGE_ORDER = [
     "lib/enum/operation_mode.py",
     "lib/enum/operation_state.py",
     "lib/config_util.py",
+    "lib/rtc_memory_util.py",
     "lib/server_handler.py",
     "lib/powerpot_handler.py",
     "lib/rest_api_handler.py",
