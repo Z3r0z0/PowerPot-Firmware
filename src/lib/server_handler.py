@@ -18,7 +18,7 @@ class ServerHandler:
 
     def __init__(self, machine_ip, machine_subnet, machine_mac_address,
                  server_ip=None, server_port=None,
-                 max_queue=20, max_send_per_loop=1, timeout_ms=1000, max_retries=3):
+                 max_queue=20, max_send_per_loop=1, timeout_ms=500, max_retries=3):
         if machine_ip is None:
             raise Exception("[Server-Handler] MachineIp must not be None")
         if machine_subnet is None:

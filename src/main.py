@@ -5,6 +5,7 @@ import machine
 import network
 
 from src.lib import config_util, ota_util, rtc_memory_util
+from src.lib.enum.log_type import LOG_Type
 from src.lib.enum.operation_mode import OPERATION_Mode
 from src.lib.enum.operation_state import OPERATION_State
 from src.lib.powerpot_handler import PowerPotHandler
@@ -12,11 +13,16 @@ from src.lib.rest_api_handler import RestApiHandler
 from src.lib.server_handler import ServerHandler
 
 # TODO: implement dns on AP to redirect to config page
+# TODO: add wlan reconnect
+# TODO: add server disconnect and reconnect
 
 reset_cause = machine.reset_cause()
 
 # %% config & operation mode
 config = config_util.load_config()
+if config is None:
+    config = {}
+
 config_changed = False
 current_operation_mode = config.get("mode", OPERATION_Mode["Unknown"])
 
@@ -80,6 +86,10 @@ if is_wifi_connected and current_operation_mode != OPERATION_Mode["Standalone"]:
 
     if server.ping_server():
         print("[Setup] Server ping success")
+        if current_operation_mode == OPERATION_Mode["Unknown"]:
+            current_operation_mode = OPERATION_Mode["Client"]
+            config_changed = True
+            config["mode"] = current_operation_mode
     else:
         result = server.discover_server()
         if result:
@@ -127,39 +137,51 @@ if current_operation_mode == OPERATION_Mode["Low_Power"] and (
         reset_cause != machine.DEEPSLEEP_RESET or ota_duration <= 0):
     tick_timer = time.ticks_add(time.ticks_ms(), config.get("lowPowerSetupTime", 300_000))
 
+# %% Watchdog
+watchdog = machine.WDT(timeout=15_000)
+
 # %% main
 while True:
-    if current_operation_mode == OPERATION_Mode["Low_Power"] and (
-            tick_timer and time.ticks_diff(time.ticks_ms(), tick_timer) >= 0):
-        tick_timer = None
-        is_wifi_connected = False
+    try:
+        if current_operation_mode == OPERATION_Mode["Low_Power"] and (
+                tick_timer and time.ticks_diff(time.ticks_ms(), tick_timer) >= 0):
+            tick_timer = None
+            is_wifi_connected = False
+            if server:
+                server.flush(20)
+                server = None
+            if wlan:
+                wlan.active(False)
+
+        power_pot.run()
+
+        updated = False
+        if power_pot.should_check_update() and is_wifi_connected:
+            if ota_util.check_firmware_version(config, server):
+                updated = ota_util.update_firmware(config, server)
+
+        if rest_handler and (current_operation_mode != OPERATION_Mode["Low_Power"] or tick_timer):
+            rest_handler.run()
+
+        if is_wifi_connected and server:
+            server.flush(20 if updated else 1)
+
+        if updated:
+            machine.reset()
+
+        if ((current_operation_mode == OPERATION_Mode["Low_Power"]) and
+                tick_timer is None
+                and power_pot.get_current_operation_state() == OPERATION_State["Idle"]):
+            ota_ticks = power_pot.get_ota_time_ms()
+            rtc_memory_util.save_to_rtc_memory({"ota_duration": ota_ticks})
+            machine.deepsleep(config.get("checkCycleInterval", 3_600_000))
+        else:
+            machine.lightsleep(100)
+    except Exception as error:
         if server:
-            server.flush(20)
-            server = None
-        if wlan:
-            wlan.active(False)
+            server.send_log(LOG_Type["system"], str(error), True)
+        print(str(error))
+    finally:
+        watchdog.feed()
 
-    power_pot.run()
 
-    updated = False
-    if power_pot.should_check_update() and is_wifi_connected:
-        if ota_util.check_firmware_version(config, server):
-            updated = ota_util.update_firmware(config, server)
-
-    if rest_handler and (current_operation_mode != OPERATION_Mode["Low_Power"] or tick_timer):
-        rest_handler.run()
-
-    if is_wifi_connected and server:
-        server.flush(20 if updated else 1)
-
-    if updated:
-        machine.reset()
-
-    if ((current_operation_mode == OPERATION_Mode["Low_Power"]) and
-            tick_timer is None
-            and power_pot.get_current_operation_state() == OPERATION_State["Idle"]):
-        ota_ticks = power_pot.get_ota_time_ms()
-        rtc_memory_util.save_to_rtc_memory({"ota_duration": ota_ticks})
-        machine.deepsleep(config.get("checkCycleInterval", 3_600_000))
-    else:
-        machine.lightsleep(100)

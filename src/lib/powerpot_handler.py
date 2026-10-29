@@ -1,4 +1,4 @@
-from machine import PWM, Pin, ADC, Timer
+from machine import PWM, Pin, ADC, Timer, disable_irq, enable_irq
 
 from src.lib.enum.log_type import LOG_Type
 from src.lib.enum.operation_mode import OPERATION_Mode
@@ -30,9 +30,9 @@ class PowerPotHandler:
             self._check_update_ticks = check_update_ms // TICK_DURATION
 
         self._pump_running_ticks = 0
-        pump_pwm_pin = Pin(PWM_FORWARD_PIN, Pin.OUT, Pin.PULL_DOWN)
-        pump_pwm_pin.value(0)
-        self._pump = PWM(pump_pwm_pin)
+        self.pump_pwm_pin = Pin(PWM_FORWARD_PIN, Pin.OUT, Pin.PULL_DOWN)
+        self.pump_pwm_pin.value(0)
+        self._pump = PWM(self.pump_pwm_pin)
         self._pump.duty(0)
         self._pump.freq(100)
 
@@ -93,24 +93,32 @@ class PowerPotHandler:
             print("[PowerPot] Not started!")
             return
 
-        if self._state == OPERATION_State["MoistureCheck"]:
-            value = self._soil_moisture_sensor.read_u16()
-            percent_value = max(0, min(100, (self._soil_moisture_adc_max - value) / self._soil_moisture_adc_step))
+        # disable interrupts save state
+        ir_state = disable_irq()
 
-            if value > self._soil_moisture_adc_watering_min:
-                if self.server:
-                    self.server.send_log(LOG_Type["watering"], moisture_level=percent_value)
-                print(f"[PowerPot] Watering; Soil Moisture: {percent_value}%")
-                self._pump.duty(int((1023 / 100) * self.config.get("watering", {}).get("pumpPower", 80)))
-                self._state = OPERATION_State["PumpRunning"]
-                self._pump_running_ticks = int(self.config.get("watering", {}).get("wateringDuration", 10_000)) // TICK_DURATION
-            else:
-                if self.server:
-                    self.server.send_log(LOG_Type["sensor"], name="SoilMoisture", value=percent_value)
-                print(f"[PowerPot] Checked SoilMoisture: {percent_value}%")
+        try:
+            if self._state == OPERATION_State["MoistureCheck"]:
+                value = self._soil_moisture_sensor.read_u16()
+                percent_value = max(0, min(100, (self._soil_moisture_adc_max - value) / self._soil_moisture_adc_step))
+
+                if value > self._soil_moisture_adc_watering_min:
+                    if self.server:
+                        self.server.send_log(LOG_Type["watering"], moisture_level=percent_value)
+                    print(f"[PowerPot] Watering; Soil Moisture: {percent_value}%")
+                    self._pump.duty(int((1023 / 100) * self.config.get("watering", {}).get("pumpPower", 80)))
+                    self._state = OPERATION_State["PumpRunning"]
+                    self._pump_running_ticks = int(
+                        self.config.get("watering", {}).get("wateringDuration", 10_000)) // TICK_DURATION
+                else:
+                    if self.server:
+                        self.server.send_log(LOG_Type["sensor"], name="SoilMoisture", value=percent_value)
+                    print(f"[PowerPot] Checked SoilMoisture: {percent_value}%")
+                    self._state = OPERATION_State["Idle"]
+                self._check_ticks = int(self.config.get("checkCycleInterval", 3_600_000)) // TICK_DURATION
+            elif self._state == OPERATION_State["PumpStopRequested"]:
+                self._pump.duty(0)
                 self._state = OPERATION_State["Idle"]
-            self._check_ticks = int(self.config.get("checkCycleInterval", 3_600_000)) // TICK_DURATION
-        elif self._state == OPERATION_State["PumpStopRequested"]:
-            self._pump.duty(0)
-            self._state = OPERATION_State["Idle"]
-            print("[PowerPot] Stopped Pump")
+                print("[PowerPot] Stopped Pump")
+        finally:
+            # re-enable interrupts with prior state
+            enable_irq(ir_state)
