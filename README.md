@@ -67,7 +67,7 @@ Copy `dist/main.py` to device via serial (ampy, rshell, Thonny) or OTA.
 |---------------------|--------|------------------------------------------------|
 | `/api/tankLevel`    | GET    | `{"message": 0\|1}`                            |
 | `/api/opState`      | GET    | `{"message": 0-3}` (see OperationState)        |
-| `/api/updateConfig` | PUT    | `{"message": "TODO!!!"}` — **not implemented** |
+| `/api/updateConfig` | PUT    | `{"message": "TODO!!!"}` - **not implemented** |
 
 CORS enabled (`Access-Control-Allow-Origin: *`).
 
@@ -79,18 +79,18 @@ CORS enabled (`Access-Control-Allow-Origin: *`).
 | 2     | Client     | default operation                            |
 | 3     | Low_Power  | Periodic wake, deep sleep                    |
 
-Mode persists in `config.json` → `mode`.
+Mode persists in `config.json` => `mode`.
 
 ## State Machine
 ```
-Idle → MoistureCheck → PumpRunning → PumpStopRequested → Idle
+Idle => MoistureCheck => PumpRunning => PumpStopRequested => Idle
 ```
 - **Idle**: Waiting for `checkCycleInterval` timer
 - **MoistureCheck**: Reads ADC, decides watering
 - **PumpRunning**: Pump on for `wateringDuration`
 - **PumpStopRequested**: Pump off, returns to Idle
 
-Driven by `TICK_DURATION = 10ms` timer interrupt.
+Driven by `TICK_DURATION = 100ms` timer interrupt.
 
 ## Server Discovery (UDP)
 1. Device calculates broadcast IP from its IP + subnet
@@ -136,12 +136,6 @@ src/
       operation_state.py  # OPERATION_State constants
       log_type.py         # LOG_Type constants
 ```
-
-### Key Conventions
-- **No stdlib `json`** - use `ujson`
-- **Imports**: `from src.lib import ...` - build script rewrites to flat imports
-- **Timer-based**: All intervals use `TICK_DURATION = 10ms` ticks
-- **Non-blocking**: `select.select()` for HTTP, `Timer.PERIODIC` for ticks
 
 ## Known TODOs
 - [ ] DNS redirect on AP to config page
