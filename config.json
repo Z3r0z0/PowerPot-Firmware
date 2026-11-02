@@ -15,7 +15,7 @@
   },
   "ota": {
     "checkCycleInterval": 43200000,
-    "version": "0.2.0",
+    "version": "0.2.1",
     "basePath": "",
     "versionEndpoint": "/embedded/currentVersion/PowerPot",
     "updateEndpoint": "/embedded/firmware/PowerPot"

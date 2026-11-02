@@ -1,3 +1,5 @@
+import os
+
 import requests
 import ubinascii
 
@@ -84,8 +86,10 @@ def update_firmware(config, server=None):
             print("[FirmwareUpdate] Firmware integrity check failed")
             return False
 
-        with open("main.py", "w") as file:
+        temp_path = "main_temp.py"
+        with open(temp_path, "w") as file:
             file.write(res_text.decode("utf-8"))
+        os.rename(temp_path, "main.py")
 
         config["ota"]["version"] = str(version)
         config_util.save_config(config)

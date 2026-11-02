@@ -11,7 +11,8 @@ MicroPython firmware for the PowerPot automatic watering system. Runs on ESP32 C
 - WiFi connectivity
 - UDP server discovery + HTTP log posting
 - Local REST API (port 80)
-- OTA firmware updates with CRC-32 verification
+- Watchdog (`machine.WDT`, 15s timeout, fed every main loop iteration)
+- OTA firmware updates with CRC-32 verification and atomic file write
 
 ## Hardware Pin Mapping
 | Function          | Pin    | Notes                      |
@@ -30,7 +31,7 @@ python build.py
 - Adds magic header: `# PowerPotFirmware <version> crc32=XXXXXXXX`
 - CRC-32 covers everything after header line
 
-Output: `dist/main.py` — single-file firmware for device.
+Output: `dist/main.py
 
 ## Configuration
 ```json
@@ -63,20 +64,20 @@ Output: `dist/main.py` — single-file firmware for device.
 Copy `dist/main.py` to device via serial (ampy, rshell, Thonny) or OTA.
 
 ## Local REST API (Port 80)
-| Endpoint            | Method | Response                                       |
-|---------------------|--------|------------------------------------------------|
-| `/api/tankLevel`    | GET    | `{"message": 0\|1}`                            |
-| `/api/opState`      | GET    | `{"message": 0-3}` (see OperationState)        |
-| `/api/updateConfig` | PUT    | `{"message": "TODO!!!"}` - **not implemented** |
+| Endpoint            | Method | Response                                |
+|---------------------|--------|-----------------------------------------|
+| `/api/tankLevel`    | GET    | `{"message": 0\|1}`                     |
+| `/api/opState`      | GET    | `{"message": 0-3}` (see Satate Machine) |
+| `/api/updateConfig` | PUT    | **not implemented**                     |
 
 CORS enabled (`Access-Control-Allow-Origin: *`).
 
 ## Operation Modes
 | Value | Name       | Behavior                                     |
 |-------|------------|----------------------------------------------|
-| 0     | Unknown    | Initial, transitions after WiFi/server check |
-| 1     | Standalone | defautl operaton, no server connection       |
-| 2     | Client     | default operation                            |
+| 0     | Unknown    | Initial, transitions after WiFi/Server check |
+| 1     | Standalone | default operation, no server connection      |
+| 2     | Client     | default operation with server connection     |
 | 3     | Low_Power  | Periodic wake, deep sleep                    |
 
 Mode persists in `config.json` => `mode`.
@@ -106,7 +107,7 @@ Driven by `TICK_DURATION = 100ms` timer interrupt.
    - Header starts with `# PowerPotFirmware`
    - CRC-32 matches `crc32=` in header
    - Ends with `# EndPowerPotFirmware`
-5. Writes to `main.py`, updates `config.json` version, reboots
+5. Writes atomically to `main_temp.py` then renames to `main.py`, updates `config.json` version, reboots
 
 ## Development
 
@@ -127,10 +128,11 @@ src/
   main.py                 # Entry point, WiFi/server init, main loop
   lib/
     config_util.py        # load_config/save_config (ujson)
-    powerpot_handler.py   # Core: ADC, PWM, state machine, timers
     ota_util.py           # Version check, OTA download, CRC verify
-    server_handler.py     # UDP discover, HTTP log queue + flush
+    powerpot_handler.py   # Core: ADC, PWM, state machine, timers
     rest_api_handler.py   # Non-blocking HTTP server (port 80)
+    rtc_memory_util.py    # save/load data from rtc memory
+    server_handler.py     # UDP discover, HTTP log queue + flush
     enum/
       operation_mode.py   # OPERATION_Mode constants
       operation_state.py  # OPERATION_State constants
@@ -139,9 +141,8 @@ src/
 
 ## Known TODOs
 - [ ] DNS redirect on AP to config page
-- [ ] Low power mode (light/deep sleep)
-- [ ] Rest-Api Calls
-- [ ] Web-Interface for Configuration
+- [ ] wlan reconnect
+- [ ] server disconnect and reconnect
 - [ ] Test suite
 
 ## License:

@@ -58,7 +58,7 @@ class RestApiHandler:
                 response_str = ujson.dumps(response_body) if isinstance(response_body, dict) else str(response_body)
 
                 response = (
-                    f"HTTP/1.1 {status if status else 500} {"OK" if status == 200 else "ERROR"}\r\n"
+                    f"HTTP/1.1 {status if status else 500} {'OK' if status == 200 else 'ERROR'}\r\n"
                     f"Content-Type: {response_content}\r\n"
                     "Access-Control-Allow-Origin: *\r\n"
                     "Connection: close\r\n"
