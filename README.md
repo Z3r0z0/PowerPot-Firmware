@@ -11,7 +11,7 @@ MicroPython firmware for the PowerPot automatic watering system. Runs on ESP32 C
 - WiFi connectivity
 - UDP server discovery + HTTP log posting
 - Local REST API (port 80)
-- Watchdog (`machine.WDT`, 15s timeout, fed every main loop iteration)
+- Watchdog (`machine.WDT`, 20s timeout, fed every main loop iteration)
 - OTA firmware updates with CRC-32 verification and atomic file write
 
 ## Hardware Pin Mapping
