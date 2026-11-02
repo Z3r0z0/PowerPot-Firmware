@@ -138,7 +138,7 @@ if current_operation_mode == OPERATION_Mode["Low_Power"] and (
     tick_timer = time.ticks_add(time.ticks_ms(), config.get("lowPowerSetupTime", 300_000))
 
 # %% Watchdog
-watchdog = machine.WDT(timeout=15_000)
+watchdog = machine.WDT(timeout=20_000)
 
 # %% main
 while True:
@@ -176,12 +176,10 @@ while True:
             rtc_memory_util.save_to_rtc_memory({"ota_duration": ota_ticks})
             machine.deepsleep(config.get("checkCycleInterval", 3_600_000))
         else:
-            machine.lightsleep(100)
+            sleep_ms(100)
     except Exception as error:
         if server:
             server.send_log(LOG_Type["system"], str(error), True)
         print(str(error))
     finally:
         watchdog.feed()
-
-

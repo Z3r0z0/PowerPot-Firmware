@@ -101,7 +101,12 @@ class PowerPotHandler:
                 value = self._soil_moisture_sensor.read_u16()
                 percent_value = max(0, min(100, (self._soil_moisture_adc_max - value) / self._soil_moisture_adc_step))
 
-                if value > self._soil_moisture_adc_watering_min:
+                if self._tank_level_sensor.value():
+                    if self.server:
+                        self.server.send_log(LOG_Type["sensor"], name="tankSensor", value=self._tank_level_sensor.value())
+                    print(f"[PowerPot] Tank is empty!")
+                    self._state = OPERATION_State["Idle"]
+                elif value > self._soil_moisture_adc_watering_min:
                     if self.server:
                         self.server.send_log(LOG_Type["watering"], moisture_level=percent_value)
                     print(f"[PowerPot] Watering; Soil Moisture: {percent_value}%")
